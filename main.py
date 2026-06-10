@@ -6,6 +6,7 @@ from faster_whisper import WhisperModel
 from collections import Counter
 import os, time, requests, uuid, shutil, re, subprocess
 import torch
+import shutil
 
 # REMOVED: pyngrok, ngrok, nest_asyncio, asyncio
 # Those were only needed to run a server inside Colab's notebook environment.
@@ -32,6 +33,14 @@ COMPUTE = "float16" if DEVICE == "cuda" else "int8"
 # On Azure ACA: MODEL_PATH = "/mnt/models/faster_CrisperWhisper"
 #   → reads from your Blob Storage mount, no download needed
 MODEL_PATH = os.environ.get("MODEL_PATH", "nyrahealth/faster_CrisperWhisper")
+
+# Copy model from read-only mount to writable local path
+if MODEL_PATH.startswith("/mnt/"):
+    LOCAL_MODEL = "/tmp/model"
+    if not os.path.exists(LOCAL_MODEL):
+        print(f"Copying model from {MODEL_PATH} to {LOCAL_MODEL}...")
+        shutil.copytree(MODEL_PATH, LOCAL_MODEL)
+    MODEL_PATH = LOCAL_MODEL
 
 print(f"Loading model from: {MODEL_PATH} on {DEVICE}")
 model = WhisperModel(MODEL_PATH, device=DEVICE, compute_type=COMPUTE)
