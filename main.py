@@ -38,17 +38,15 @@ if MODEL_PATH.startswith("/mnt/"):
     LOCAL_MODEL = "/tmp/model"
     if not os.path.exists(LOCAL_MODEL):
         print(f"Copying model from {MODEL_PATH} to {LOCAL_MODEL}...")
-        os.makedirs(LOCAL_MODEL, exist_ok=True)
-        import glob
-        files = glob.glob(f"{MODEL_PATH}/*")
-        print(f"Files found: {files}")
-        for f in files:
-            dest = os.path.join(LOCAL_MODEL, os.path.basename(f))
-            print(f"Copying {f} to {dest}")
-            shutil.copy2(f, dest)
-        print("Copy complete!")
+        result = subprocess.run(
+            ["cp", "-r", MODEL_PATH, LOCAL_MODEL],
+            capture_output=True, text=True
+        )
+        print(f"Copy stdout: {result.stdout}")
+        print(f"Copy stderr: {result.stderr}")
+        print(f"Copy returncode: {result.returncode}")
     MODEL_PATH = LOCAL_MODEL
-
+    
 print(f"Loading model from: {MODEL_PATH} on {DEVICE}")
 model = WhisperModel(MODEL_PATH, device=DEVICE, compute_type=COMPUTE)
 print("Model loaded.")
