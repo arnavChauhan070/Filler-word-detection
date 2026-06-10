@@ -36,17 +36,16 @@ MODEL_PATH = os.environ.get("MODEL_PATH", "nyrahealth/faster_CrisperWhisper")
 
 if MODEL_PATH.startswith("/mnt/"):
     LOCAL_MODEL = "/tmp/model"
-    if not os.path.exists(LOCAL_MODEL):
-        print(f"Copying model from {MODEL_PATH} to {LOCAL_MODEL}...")
-        result = subprocess.run(
-            ["cp", "-r", MODEL_PATH, LOCAL_MODEL],
-            capture_output=True, text=True
-        )
-        print(f"Copy stdout: {result.stdout}")
-        print(f"Copy stderr: {result.stderr}")
-        print(f"Copy returncode: {result.returncode}")
-    MODEL_PATH = LOCAL_MODEL
-    
+    # Check what's at the mount path
+    print(f"Checking mount path: {MODEL_PATH}")
+    print(f"Mount exists: {os.path.exists(MODEL_PATH)}")
+    if os.path.exists(MODEL_PATH):
+        print(f"Files in mount: {os.listdir(MODEL_PATH)}")
+    else:
+        print("MOUNT PATH DOES NOT EXIST - volume not mounted!")
+        # Fall back to downloading from HuggingFace
+        MODEL_PATH = "nyrahealth/faster_CrisperWhisper"
+
 print(f"Loading model from: {MODEL_PATH} on {DEVICE}")
 model = WhisperModel(MODEL_PATH, device=DEVICE, compute_type=COMPUTE)
 print("Model loaded.")
