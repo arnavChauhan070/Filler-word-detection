@@ -20,31 +20,20 @@ COMPUTE = "float16" if DEVICE == "cuda" else "int8"
 
 MODEL_PATH = os.environ.get("MODEL_PATH", "nyrahealth/faster_CrisperWhisper")
 
+print(f"[STARTUP] MODEL_PATH = {MODEL_PATH}")
+print(f"[STARTUP] DEVICE = {DEVICE}")
+
 if MODEL_PATH.startswith("/mnt/"):
-    LOCAL_MODEL = "/tmp/model"
-    print(f"Checking mount path: {MODEL_PATH}")
-    print(f"Mount exists: {os.path.exists(MODEL_PATH)}")
+    print(f"[STARTUP] Mount exists: {os.path.exists(MODEL_PATH)}")
     if os.path.exists(MODEL_PATH):
-        print(f"Files in mount: {os.listdir(MODEL_PATH)}")
-        if not os.path.exists(LOCAL_MODEL):
-            os.makedirs(LOCAL_MODEL, exist_ok=True)
-            print(f"Copying model files...")
-            result = subprocess.run(
-                ["cp", "-r", f"{MODEL_PATH}/.", LOCAL_MODEL],
-                capture_output=True, text=True
-            )
-            print(f"Copy stdout: {result.stdout}")
-            print(f"Copy stderr: {result.stderr}")
-            print(f"Copy returncode: {result.returncode}")
-            print(f"Files in /tmp/model: {os.listdir(LOCAL_MODEL)}")
-        MODEL_PATH = LOCAL_MODEL
+        print(f"[STARTUP] Files in mount: {os.listdir(MODEL_PATH)}")
     else:
-        print("MOUNT PATH DOES NOT EXIST - falling back to HuggingFace download")
+        print("[STARTUP] MOUNT PATH DOES NOT EXIST - falling back to HuggingFace download")
         MODEL_PATH = "nyrahealth/faster_CrisperWhisper"
 
-print(f"Loading model from: {MODEL_PATH} on {DEVICE}")
+print(f"[STARTUP] Loading model from: {MODEL_PATH} on {DEVICE}")
 model = WhisperModel(MODEL_PATH, device=DEVICE, compute_type=COMPUTE)
-print("Model loaded.")
+print("[STARTUP] Model loaded successfully.")
 
 
 def is_hallucination(text: str) -> bool:
