@@ -6,11 +6,6 @@ from faster_whisper import WhisperModel
 from collections import Counter
 import os, time, requests, uuid, shutil, re, subprocess
 import torch
-import shutil
-
-# REMOVED: pyngrok, ngrok, nest_asyncio, asyncio
-# Those were only needed to run a server inside Colab's notebook environment.
-# In Docker, uvicorn is launched by the Dockerfile CMD — not from inside Python.
 
 app = FastAPI()
 app.add_middleware(
@@ -20,30 +15,31 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# CHANGED: auto-detect GPU vs CPU
-# In VS Code locally: no CUDA → falls back to CPU (slow but doesn't crash)
-# In Azure ACA container: CUDA exists → uses GPU automatically
-import torch
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 COMPUTE = "float16" if DEVICE == "cuda" else "int8"
 
-# CHANGED: model path comes from environment variable
-# Locally (VS Code): MODEL_PATH defaults to the HuggingFace model name
-#   → faster-whisper downloads it automatically the first time
-# On Azure ACA: MODEL_PATH = "/mnt/models/faster_CrisperWhisper"
-#   → reads from your Blob Storage mount, no download needed
 MODEL_PATH = os.environ.get("MODEL_PATH", "nyrahealth/faster_CrisperWhisper")
 
 if MODEL_PATH.startswith("/mnt/"):
     LOCAL_MODEL = "/tmp/model"
-    # Check what's at the mount path
     print(f"Checking mount path: {MODEL_PATH}")
     print(f"Mount exists: {os.path.exists(MODEL_PATH)}")
     if os.path.exists(MODEL_PATH):
         print(f"Files in mount: {os.listdir(MODEL_PATH)}")
+        if not os.path.exists(LOCAL_MODEL):
+            os.makedirs(LOCAL_MODEL, exist_ok=True)
+            print(f"Copying model files...")
+            result = subprocess.run(
+                ["cp", "-r", f"{MODEL_PATH}/.", LOCAL_MODEL],
+                capture_output=True, text=True
+            )
+            print(f"Copy stdout: {result.stdout}")
+            print(f"Copy stderr: {result.stderr}")
+            print(f"Copy returncode: {result.returncode}")
+            print(f"Files in /tmp/model: {os.listdir(LOCAL_MODEL)}")
+        MODEL_PATH = LOCAL_MODEL
     else:
-        print("MOUNT PATH DOES NOT EXIST - volume not mounted!")
-        # Fall back to downloading from HuggingFace
+        print("MOUNT PATH DOES NOT EXIST - falling back to HuggingFace download")
         MODEL_PATH = "nyrahealth/faster_CrisperWhisper"
 
 print(f"Loading model from: {MODEL_PATH} on {DEVICE}")
@@ -71,8 +67,6 @@ def root():
 def health():
     return {"status": "ok", "device": DEVICE}
 
-# ADDED: warm endpoint — called by iOS app when user taps record
-# ACA container wakes up during the recording, so no cold start on /transcribe
 @app.get("/warm")
 def warm():
     return {"status": "warm", "device": DEVICE}
