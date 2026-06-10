@@ -34,12 +34,19 @@ COMPUTE = "float16" if DEVICE == "cuda" else "int8"
 #   → reads from your Blob Storage mount, no download needed
 MODEL_PATH = os.environ.get("MODEL_PATH", "nyrahealth/faster_CrisperWhisper")
 
-# Copy model from read-only mount to writable local path
 if MODEL_PATH.startswith("/mnt/"):
     LOCAL_MODEL = "/tmp/model"
     if not os.path.exists(LOCAL_MODEL):
         print(f"Copying model from {MODEL_PATH} to {LOCAL_MODEL}...")
-        shutil.copytree(MODEL_PATH, LOCAL_MODEL)
+        os.makedirs(LOCAL_MODEL, exist_ok=True)
+        import glob
+        files = glob.glob(f"{MODEL_PATH}/*")
+        print(f"Files found: {files}")
+        for f in files:
+            dest = os.path.join(LOCAL_MODEL, os.path.basename(f))
+            print(f"Copying {f} to {dest}")
+            shutil.copy2(f, dest)
+        print("Copy complete!")
     MODEL_PATH = LOCAL_MODEL
 
 print(f"Loading model from: {MODEL_PATH} on {DEVICE}")
