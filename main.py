@@ -56,7 +56,7 @@ def root():
 def health():
     return {"status": "ok", "device": DEVICE}
 
-@app.get("/warm")
+@app.api_route("/warm", methods=["GET", "POST"])
 def warm():
     return {"status": "warm", "device": DEVICE}
 
